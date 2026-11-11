@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>8086 汇编可视化模拟器 — Visual 8086 Simulator</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- ============ 顶部标题栏 ============ -->
+<header class="title-bar">
+  <div class="brand">
+    <span class="brand-logo">▣</span>
+    <div class="brand-text">
+      <span class="brand-title">8086 Visual Simulator</span>
+      <span class="brand-sub">微机原理 · 汇编语言可视化实验环境</span>
+    </div>
+  </div>
+  <div class="title-actions">
+    <select id="exampleSelect" title="加载内置示例程序">
+      <option value="">— 内置示例 —</option>
+    </select>
+    <button id="btnHelp" class="btn btn-ghost" title="使用说明">帮助</button>
+    <button id="btnAbout" class="btn btn-ghost" title="关于">关于</button>
+  </div>
+</header>
+
+<!-- ============ 工具栏 ============ -->
+<div class="toolbar">
+  <div class="tool-group">
+    <button id="btnAssemble" class="btn btn-primary" title="汇编代码并加载到内存 (F5)">▶ 汇编加载</button>
+    <button id="btnRun" class="btn btn-go" disabled title="连续运行 (F6)">⏵ 运行</button>
+    <button id="btnPause" class="btn btn-warn" disabled title="暂停">⏸ 暂停</button>
+    <button id="btnStep" class="btn" disabled title="单步执行一条指令 (F7)">⏭ 单步</button>
+    <button id="btnReset" class="btn btn-danger" title="复位 CPU 与控制台">⟲ 复位</button>
+  </div>
+  <div class="tool-group tool-sep">
+    <label class="speed-label">执行速度
+      <input type="range" id="speedRange" min="0" max="100" value="65">
+      <span id="speedText" class="speed-text">100 条/秒</span>
+    </label>
+  </div>
+  <div class="tool-group tool-sep">
+    <label class="check-label"><input type="checkbox" id="chkAnimate" checked> 变化高亮</label>
+    <label class="check-label"><input type="checkbox" id="chkCRT" checked> CRT 扫描线</label>
+    <select id="themeSelect" title="配色主题">
+      <option value="green">经典磷绿</option>
+      <option value="amber">琥珀终端</option>
+      <option value="ice">现代冰蓝</option>
+    </select>
+  </div>
+</div>
+
+<!-- ============ 主工作区 ============ -->
+<main class="workspace">
+
+  <!-- 左：代码编辑器 -->
+  <section class="panel panel-editor">
+    <div class="panel-header">
+      <span class="panel-title">📝 源代码编辑器</span>
+      <span class="panel-hint">点击行号设置断点 · ; 注释</span>
+    </div>
+    <div class="editor-wrap" id="editorWrap">
+      <div class="editor-gutter" id="editorGutter"></div>
+      <div class="editor-code">
+        <pre class="editor-highlight" id="editorHighlight" aria-hidden="true"><code></code></pre>
+        <textarea id="editorInput" spellcheck="false" wrap="off"
+          placeholder="在此输入 8086 汇编代码..."></textarea>
+      </div>
+    </div>
+    <div class="panel-subheader">
+      <span class="panel-title small">汇编输出 / 运行日志</span>
+      <button id="btnClearLog" class="btn btn-mini">清空</button>
+    </div>
+    <div class="log-view" id="logView"></div>
+  </section>
+
+  <!-- 中：DOS 控制台 -->
+  <section class="panel panel-console">
+    <div class="panel-header">
+      <span class="panel-title">🖥 DOS 控制台</span>
+      <div class="console-dots"><i></i><i></i><i></i></div>
+    </div>
+    <div class="crt-screen" id="crtScreen">
+      <div class="crt-content" id="crtContent"></div>
+      <div class="crt-cursor" id="crtCursor"></div>
+      <div class="crt-overlay"></div>
+    </div>
+    <div class="panel-subheader">
+      <span class="panel-title small">反汇编 / 当前指令</span>
+      <span class="panel-hint" id="disasmHint">未加载</span>
+    </div>
+    <div class="disasm-view" id="disasmView"></div>
+  </section>
+
+  <!-- 右：寄存器 / 标志位 / 堆栈 -->
+  <section class="panel panel-regs">
+    <div class="panel-header">
+      <span class="panel-title">🧮 寄存器</span>
+      <span class="panel-hint">十六进制</span>
+    </div>
+    <div class="reg-grid" id="regGrid">
+      <!-- JS 动态生成 -->
+    </div>
+
+    <div class="panel-subheader"><span class="panel-title small">标志位 FLAGS</span></div>
+    <div class="flags-grid" id="flagsGrid">
+      <div class="flag-item" data-flag="CF" title="进位标志 Carry Flag"><b>CF</b><span class="flag-led"></span><em>0</em></div>
+      <div class="flag-item" data-flag="PF" title="奇偶标志 Parity Flag"><b>PF</b><span class="flag-led"></span><em>0</em></div>
+      <div class="flag-item" data-flag="AF" title="辅助进位 Auxiliary Flag"><b>AF</b><span class="flag-led"></span><em>0</em></div>
+      <div class="flag-item" data-flag="ZF" title="零标志 Zero Flag"><b>ZF</b><span class="flag-led"></span><em>0</em></div>
+      <div class="flag-item" data-flag="SF" title="符号标志 Sign Flag"><b>SF</b><span class="flag-led"></span><em>0</em></div>
+      <div class="flag-item" data-flag="TF" title="陷阱标志 Trap Flag"><b>TF</b><span class="flag-led"></span><em>0</em></div>
+      <div class="flag-item" data-flag="IF" title="中断允许 Interrupt Flag"><b>IF</b><span class="flag-led"></span><em>1</em></div>
+      <div class="flag-item" data-flag="DF" title="方向标志 Direction Flag"><b>DF</b><span class="flag-led"></span><em>0</em></div>
+      <div class="flag-item" data-flag="OF" title="溢出标志 Overflow Flag"><b>OF</b><span class="flag-led"></span><em>0</em></div>
+    </div>
+
+    <div class="panel-subheader">
+      <span class="panel-title small">堆栈 Stack</span>
+      <span class="panel-hint" id="stackHint">SS:SP</span>
+    </div>
+    <div class="stack-view" id="stackView"></div>
+  </section>
+
+</main>
+
+<!-- ============ 底部内存查看器 ============ -->
+<section class="memory-panel">
+  <div class="memory-bar">
+    <span class="panel-title small">💾 内存查看器 Memory</span>
+    <label>段
+      <select id="memSegSel">
+        <option value="DS">DS</option>
+        <option value="SS">SS</option>
+        <option value="ES">ES</option>
+        <option value="CS">CS</option>
+      </select>
+    </label>
+    <label>偏移地址
+      <input type="text" id="memAddrInput" value="0000" maxlength="4" class="hex-input">
+    </label>
+    <button id="btnMemGo" class="btn btn-mini">跳转</button>
+    <label class="check-label"><input type="checkbox" id="chkMemFollow" checked> 跟随 IP</label>
+    <span class="memory-info" id="memInfo"></span>
+  </div>
+  <div class="memory-dump" id="memoryDump"></div>
+</section>
+
+<!-- ============ 状态栏 ============ -->
+<footer class="status-bar">
+  <span class="status-item" id="statusState">● 就绪</span>
+  <span class="status-item" id="statusCSIP">CS:IP = 0000:0000</span>
+  <span class="status-item" id="statusPhys">物理地址 = 00000</span>
+  <span class="status-item" id="statusInstr">指令数 = 0</span>
+  <span class="status-item" id="statusCycles">周期 ≈ 0</span>
+  <span class="status-item status-spacer" id="statusMsg"></span>
+</footer>
+
+<!-- 模态框（帮助/关于） -->
+<div class="modal-mask" id="modalMask">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span id="modalTitle">标题</span>
+      <button id="modalClose" class="btn btn-mini">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<script src="js/memory.js"></script>
+<script src="js/cpu.js"></script>
+<script src="js/instructions.js"></script>
+<script src="js/assembler.js"></script>
+<script src="js/dos.js"></script>
+<script src="js/editor.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

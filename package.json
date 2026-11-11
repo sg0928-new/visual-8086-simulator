@@ -1,0 +1,38 @@
+{
+  "name": "visual-8086-simulator",
+  "version": "1.0.0",
+  "description": "8086 微机原理 · 汇编语言可视化模拟器（类 DOS 环境）",
+  "main": "electron-main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win portable",
+    "test": "node test/core-test.js"
+  },
+  "keywords": ["8086", "assembler", "emulator", "dos", "微机原理", "汇编"],
+  "author": "Visual 8086",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.visual8086.simulator",
+    "productName": "8086汇编可视化模拟器",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "index.html",
+      "electron-main.js",
+      "css/**/*",
+      "js/**/*",
+      "examples/**/*"
+    ],
+    "win": {
+      "target": "portable"
+    },
+    "portable": {
+      "artifactName": "8086汇编可视化模拟器.exe"
+    }
+  }
+}

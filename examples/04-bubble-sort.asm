@@ -1,0 +1,32 @@
+; 冒泡排序：数组升序排列
+DATA SEGMENT
+    ARR DW 5, 2, 9, 1, 7, 3
+    N   DW 6
+DATA ENDS
+
+CODE SEGMENT
+    ASSUME CS:CODE, DS:DATA
+START:
+    MOV AX, DATA
+    MOV DS, AX
+OUTER:
+    MOV CX, N
+    DEC CX
+    JCXZ DONE            ; CX=0 排序完成
+    XOR BX, BX
+INNER:
+    MOV AX, ARR[BX]
+    CMP AX, ARR[BX+2]
+    JLE NOX
+    XCHG AX, ARR[BX+2]
+    MOV ARR[BX], AX
+NOX:
+    ADD BX, 2
+    LOOP INNER
+    DEC N
+    JNZ OUTER
+DONE:
+    MOV AH, 4CH
+    INT 21H
+CODE ENDS
+END START
